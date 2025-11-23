@@ -1,0 +1,168 @@
+groups:
+  - name: filesystem_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: HighFilesystemErrorRate
+        expr: rate(fs_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "High filesystem error rate detected"
+          description: "Filesystem is experiencing {{ $value | humanize }} errors per second for operation {{ $labels.operation }}"
+          runbook_url: "https://runbooks.example.com/filesystem/high-error-rate"
+
+      # Very high error rate (critical)
+      - alert: CriticalFilesystemErrorRate
+        expr: rate(fs_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: filesystem
+        annotations:
+          summary: "Critical filesystem error rate detected"
+          description: "Filesystem is experiencing {{ $value | humanize }} errors per second - immediate attention required"
+          runbook_url: "https://runbooks.example.com/filesystem/critical-error-rate"
+
+      # High latency alert
+      - alert: FilesystemHighLatency
+        expr: histogram_quantile(0.95, rate(fs_operation_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "Filesystem operations are slow"
+          description: "P95 latency for {{ $labels.operation }} is {{ $value | humanize }}s (threshold: 1s)"
+          runbook_url: "https://runbooks.example.com/filesystem/high-latency"
+
+      # Critical latency alert
+      - alert: FilesystemCriticalLatency
+        expr: histogram_quantile(0.95, rate(fs_operation_duration_seconds_bucket[5m])) > 10.0
+        for: 2m
+        labels:
+          severity: critical
+          component: filesystem
+        annotations:
+          summary: "Filesystem operations are critically slow"
+          description: "P95 latency for {{ $labels.operation }} is {{ $value | humanize }}s - performance severely degraded"
+          runbook_url: "https://runbooks.example.com/filesystem/critical-latency"
+
+      # File descriptor leak detection
+      - alert: OpenFileDescriptorLeak
+        expr: deriv(fs_open_files[10m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "Possible file descriptor leak detected"
+          description: "Open file count is steadily increasing at {{ $value | humanize }} files per second"
+          runbook_url: "https://runbooks.example.com/filesystem/fd-leak"
+
+      # Too many open files
+      - alert: TooManyOpenFiles
+        expr: fs_open_files > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "High number of open files"
+          description: "Currently {{ $value }} files are open (threshold: 1000)"
+          runbook_url: "https://runbooks.example.com/filesystem/too-many-files"
+
+      # Low success rate
+      - alert: LowFilesystemSuccessRate
+        expr: sum(rate(fs_operations_total{status="success"}[5m])) / sum(rate(fs_operations_total[5m])) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "Filesystem success rate is low"
+          description: "Success rate is {{ $value | humanizePercentage }} (threshold: 95%)"
+          runbook_url: "https://runbooks.example.com/filesystem/low-success-rate"
+
+      # Permission errors spike
+      - alert: HighPermissionErrors
+        expr: rate(fs_permission_errors_total[5m]) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+          component: filesystem
+        annotations:
+          summary: "High rate of permission errors"
+          description: "Permission errors are occurring at {{ $value | humanize }} per second for {{ $labels.operation }}"
+          runbook_url: "https://runbooks.example.com/filesystem/permission-errors"
+
+      # Not found errors spike
+      - alert: HighNotFoundErrors
+        expr: rate(fs_not_found_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: info
+          component: filesystem
+        annotations:
+          summary: "High rate of not found errors"
+          description: "Not found errors are occurring at {{ $value | humanize }} per second for {{ $labels.operation }}"
+          runbook_url: "https://runbooks.example.com/filesystem/not-found-errors"
+
+      # Throughput anomaly
+      - alert: FilesystemThroughputAnomaly
+        expr: |
+          abs(
+            rate(fs_bytes_written_total[5m]) -
+            rate(fs_bytes_written_total[5m] offset 1h)
+          ) / rate(fs_bytes_written_total[5m] offset 1h) > 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: filesystem
+        annotations:
+          summary: "Filesystem throughput anomaly detected"
+          description: "Write throughput has changed by more than 50% compared to 1 hour ago"
+          runbook_url: "https://runbooks.example.com/filesystem/throughput-anomaly"
+
+      # Operation rate anomaly
+      - alert: FilesystemOperationRateAnomaly
+        expr: |
+          abs(
+            rate(fs_operations_total[5m]) -
+            rate(fs_operations_total[5m] offset 1h)
+          ) / rate(fs_operations_total[5m] offset 1h) > 0.75
+        for: 10m
+        labels:
+          severity: info
+          component: filesystem
+        annotations:
+          summary: "Filesystem operation rate anomaly detected"
+          description: "Operation rate for {{ $labels.operation }} has changed by more than 75% compared to 1 hour ago"
+          runbook_url: "https://runbooks.example.com/filesystem/operation-rate-anomaly"
+
+  - name: filesystem_recording_rules
+    interval: 30s
+    rules:
+      # Pre-calculate common aggregations for better query performance
+      - record: fs:operations:rate5m
+        expr: rate(fs_operations_total[5m])
+
+      - record: fs:errors:rate5m
+        expr: rate(fs_errors_total[5m])
+
+      - record: fs:latency:p95
+        expr: histogram_quantile(0.95, rate(fs_operation_duration_seconds_bucket[5m]))
+
+      - record: fs:latency:p99
+        expr: histogram_quantile(0.99, rate(fs_operation_duration_seconds_bucket[5m]))
+
+      - record: fs:throughput:read_bytes_per_sec
+        expr: rate(fs_bytes_read_total[5m])
+
+      - record: fs:throughput:write_bytes_per_sec
+        expr: rate(fs_bytes_written_total[5m])
+
+      - record: fs:success_rate
+        expr: sum(rate(fs_operations_total{status="success"}[5m])) / sum(rate(fs_operations_total[5m]))

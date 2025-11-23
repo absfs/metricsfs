@@ -15,7 +15,10 @@ import (
 
 func main() {
 	// Create base filesystem (using OS filesystem)
-	base := osfs.NewFS()
+	base, err := osfs.NewFS()
+	if err != nil {
+		log.Fatalf("Failed to create base filesystem: %v", err)
+	}
 
 	// Wrap with metrics collection
 	fs := metricsfs.New(base)

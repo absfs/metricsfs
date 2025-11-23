@@ -63,7 +63,10 @@ func main() {
 	otel.SetMeterProvider(meterProvider)
 
 	// Create base filesystem
-	base := osfs.NewFS()
+	base, err := osfs.NewFS()
+	if err != nil {
+		log.Fatalf("Failed to create base filesystem: %v", err)
+	}
 
 	// Wrap with OpenTelemetry metrics
 	fs, err := metricsfs.NewWithOTel(base, metricsfs.OTelConfig{

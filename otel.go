@@ -312,8 +312,333 @@ func (m *OTelMetricsFS) startSpan(ctx context.Context, operation, path string) (
 	)
 }
 
-// Additional filesystem methods would follow the same pattern...
-// (truncated for brevity - in practice, all methods would be implemented)
+// Create creates a new file.
+func (m *OTelMetricsFS) Create(name string) (absfs.File, error) {
+	return m.CreateWithContext(context.Background(), name)
+}
+
+// CreateWithContext creates a new file with context and tracing.
+func (m *OTelMetricsFS) CreateWithContext(ctx context.Context, name string) (absfs.File, error) {
+	ctx, span := m.startSpan(ctx, "Create", name)
+	defer span.End()
+
+	start := time.Now()
+	f, err := m.fs.Create(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "create", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return nil, err
+	}
+
+	return newOTelMetricsFile(f, m.collector, name, ctx), nil
+}
+
+// Mkdir creates a directory.
+func (m *OTelMetricsFS) Mkdir(name string, perm os.FileMode) error {
+	return m.MkdirWithContext(context.Background(), name, perm)
+}
+
+// MkdirWithContext creates a directory with context and tracing.
+func (m *OTelMetricsFS) MkdirWithContext(ctx context.Context, name string, perm os.FileMode) error {
+	ctx, span := m.startSpan(ctx, "Mkdir", name)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Mkdir(name, perm)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "mkdir", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// MkdirAll creates a directory and all necessary parent directories.
+func (m *OTelMetricsFS) MkdirAll(name string, perm os.FileMode) error {
+	return m.MkdirAllWithContext(context.Background(), name, perm)
+}
+
+// MkdirAllWithContext creates a directory and parents with context and tracing.
+func (m *OTelMetricsFS) MkdirAllWithContext(ctx context.Context, name string, perm os.FileMode) error {
+	ctx, span := m.startSpan(ctx, "MkdirAll", name)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.MkdirAll(name, perm)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "mkdirall", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Remove removes a file or directory.
+func (m *OTelMetricsFS) Remove(name string) error {
+	return m.RemoveWithContext(context.Background(), name)
+}
+
+// RemoveWithContext removes a file or directory with context and tracing.
+func (m *OTelMetricsFS) RemoveWithContext(ctx context.Context, name string) error {
+	ctx, span := m.startSpan(ctx, "Remove", name)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Remove(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "remove", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// RemoveAll removes a path and all children.
+func (m *OTelMetricsFS) RemoveAll(name string) error {
+	return m.RemoveAllWithContext(context.Background(), name)
+}
+
+// RemoveAllWithContext removes a path and all children with context and tracing.
+func (m *OTelMetricsFS) RemoveAllWithContext(ctx context.Context, name string) error {
+	ctx, span := m.startSpan(ctx, "RemoveAll", name)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.RemoveAll(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "removeall", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Rename renames a file or directory.
+func (m *OTelMetricsFS) Rename(oldpath, newpath string) error {
+	return m.RenameWithContext(context.Background(), oldpath, newpath)
+}
+
+// RenameWithContext renames a file or directory with context and tracing.
+func (m *OTelMetricsFS) RenameWithContext(ctx context.Context, oldpath, newpath string) error {
+	ctx, span := m.startSpan(ctx, "Rename", oldpath)
+	span.SetAttributes(attribute.String("fs.newpath", newpath))
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Rename(oldpath, newpath)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "rename", oldpath, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Chmod changes file permissions.
+func (m *OTelMetricsFS) Chmod(name string, mode os.FileMode) error {
+	return m.ChmodWithContext(context.Background(), name, mode)
+}
+
+// ChmodWithContext changes file permissions with context and tracing.
+func (m *OTelMetricsFS) ChmodWithContext(ctx context.Context, name string, mode os.FileMode) error {
+	ctx, span := m.startSpan(ctx, "Chmod", name)
+	span.SetAttributes(attribute.String("fs.mode", mode.String()))
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Chmod(name, mode)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "chmod", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Chown changes file ownership.
+func (m *OTelMetricsFS) Chown(name string, uid, gid int) error {
+	return m.ChownWithContext(context.Background(), name, uid, gid)
+}
+
+// ChownWithContext changes file ownership with context and tracing.
+func (m *OTelMetricsFS) ChownWithContext(ctx context.Context, name string, uid, gid int) error {
+	ctx, span := m.startSpan(ctx, "Chown", name)
+	span.SetAttributes(
+		attribute.Int("fs.uid", uid),
+		attribute.Int("fs.gid", gid),
+	)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Chown(name, uid, gid)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "chown", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Chtimes changes file access and modification times.
+func (m *OTelMetricsFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
+	return m.ChtimesWithContext(context.Background(), name, atime, mtime)
+}
+
+// ChtimesWithContext changes file times with context and tracing.
+func (m *OTelMetricsFS) ChtimesWithContext(ctx context.Context, name string, atime time.Time, mtime time.Time) error {
+	ctx, span := m.startSpan(ctx, "Chtimes", name)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Chtimes(name, atime, mtime)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "chtimes", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Lstat returns file information without following symlinks.
+func (m *OTelMetricsFS) Lstat(name string) (os.FileInfo, error) {
+	return m.LstatWithContext(context.Background(), name)
+}
+
+// LstatWithContext returns file information without following symlinks with context and tracing.
+func (m *OTelMetricsFS) LstatWithContext(ctx context.Context, name string) (os.FileInfo, error) {
+	ctx, span := m.startSpan(ctx, "Lstat", name)
+	defer span.End()
+
+	start := time.Now()
+
+	// Check if underlying filesystem supports Lstat
+	var info os.FileInfo
+	var err error
+	if sfs, ok := m.fs.(interface {
+		Lstat(name string) (os.FileInfo, error)
+	}); ok {
+		info, err = sfs.Lstat(name)
+	} else {
+		// Fallback to Stat if Lstat not available
+		info, err = m.fs.Stat(name)
+	}
+
+	duration := time.Since(start)
+	m.collector.recordOperation(ctx, "lstat", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return info, err
+}
+
+// Readlink reads the target of a symbolic link.
+func (m *OTelMetricsFS) Readlink(name string) (string, error) {
+	return m.ReadlinkWithContext(context.Background(), name)
+}
+
+// ReadlinkWithContext reads the target of a symbolic link with context and tracing.
+func (m *OTelMetricsFS) ReadlinkWithContext(ctx context.Context, name string) (string, error) {
+	ctx, span := m.startSpan(ctx, "Readlink", name)
+	defer span.End()
+
+	start := time.Now()
+
+	// Check if underlying filesystem supports Readlink
+	var target string
+	var err error
+	if sfs, ok := m.fs.(interface {
+		Readlink(name string) (string, error)
+	}); ok {
+		target, err = sfs.Readlink(name)
+	} else {
+		err = os.ErrInvalid
+	}
+
+	duration := time.Since(start)
+	m.collector.recordOperation(ctx, "readlink", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return "", err
+	}
+
+	span.SetAttributes(attribute.String("fs.target", target))
+	return target, nil
+}
+
+// Symlink creates a symbolic link.
+func (m *OTelMetricsFS) Symlink(oldname, newname string) error {
+	return m.SymlinkWithContext(context.Background(), oldname, newname)
+}
+
+// SymlinkWithContext creates a symbolic link with context and tracing.
+func (m *OTelMetricsFS) SymlinkWithContext(ctx context.Context, oldname, newname string) error {
+	ctx, span := m.startSpan(ctx, "Symlink", newname)
+	span.SetAttributes(attribute.String("fs.target", oldname))
+	defer span.End()
+
+	start := time.Now()
+
+	// Check if underlying filesystem supports Symlink
+	var err error
+	if sfs, ok := m.fs.(interface {
+		Symlink(oldname, newname string) error
+	}); ok {
+		err = sfs.Symlink(oldname, newname)
+	} else {
+		err = os.ErrInvalid
+	}
+
+	duration := time.Since(start)
+	m.collector.recordOperation(ctx, "symlink", newname, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
 
 // otelMetricsFile wraps a file with OpenTelemetry instrumentation.
 type otelMetricsFile struct {

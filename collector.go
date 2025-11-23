@@ -33,6 +33,11 @@ type Collector struct {
 	readSizeBytes     *prometheus.HistogramVec
 	writeSizeBytes    *prometheus.HistogramVec
 
+	// Note: Throughput (bytes/second) is calculated via Prometheus queries:
+	// - Read throughput: rate(fs_bytes_read_total[5m])
+	// - Write throughput: rate(fs_bytes_written_total[5m])
+	// This approach is more efficient and aligns with Prometheus best practices.
+
 	// Error counters
 	errorsTotal          *prometheus.CounterVec
 	permissionErrorsTotal *prometheus.CounterVec

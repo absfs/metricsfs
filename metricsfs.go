@@ -2,10 +2,14 @@ package metricsfs
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/absfs/absfs"
 )
+
+// Compile-time interface compliance check
+var _ absfs.FileSystem = (*MetricsFS)(nil)
 
 // MetricsFS wraps an absfs.FileSystem and collects metrics on all operations.
 type MetricsFS struct {
@@ -255,5 +259,98 @@ func (m *MetricsFS) Symlink(oldname, newname string) error {
 	duration := time.Since(start)
 	err := os.ErrInvalid
 	m.collector.recordOperation("symlink", newname, duration, 0, err)
+	return err
+}
+
+// Separator returns the OS-specific path separator character.
+func (m *MetricsFS) Separator() uint8 {
+	// Check if underlying filesystem implements Separator
+	if fs, ok := m.fs.(interface {
+		Separator() uint8
+	}); ok {
+		return fs.Separator()
+	}
+	return filepath.Separator
+}
+
+// ListSeparator returns the OS-specific path list separator character.
+func (m *MetricsFS) ListSeparator() uint8 {
+	// Check if underlying filesystem implements ListSeparator
+	if fs, ok := m.fs.(interface {
+		ListSeparator() uint8
+	}); ok {
+		return fs.ListSeparator()
+	}
+	return filepath.ListSeparator
+}
+
+// Chdir changes the current working directory.
+func (m *MetricsFS) Chdir(dir string) error {
+	start := time.Now()
+
+	// Check if underlying filesystem implements Chdir
+	if fs, ok := m.fs.(interface {
+		Chdir(dir string) error
+	}); ok {
+		err := fs.Chdir(dir)
+		duration := time.Since(start)
+		m.collector.recordOperation("chdir", dir, duration, 0, err)
+		return err
+	}
+
+	duration := time.Since(start)
+	err := os.ErrInvalid
+	m.collector.recordOperation("chdir", dir, duration, 0, err)
+	return err
+}
+
+// Getwd returns the current working directory.
+func (m *MetricsFS) Getwd() (string, error) {
+	start := time.Now()
+
+	// Check if underlying filesystem implements Getwd
+	if fs, ok := m.fs.(interface {
+		Getwd() (string, error)
+	}); ok {
+		dir, err := fs.Getwd()
+		duration := time.Since(start)
+		m.collector.recordOperation("getwd", dir, duration, 0, err)
+		return dir, err
+	}
+
+	duration := time.Since(start)
+	err := os.ErrInvalid
+	m.collector.recordOperation("getwd", "", duration, 0, err)
+	return "", err
+}
+
+// TempDir returns the path to the temporary directory.
+func (m *MetricsFS) TempDir() string {
+	// Check if underlying filesystem implements TempDir
+	if fs, ok := m.fs.(interface {
+		TempDir() string
+	}); ok {
+		return fs.TempDir()
+	}
+	return os.TempDir()
+}
+
+// Truncate truncates the named file to the specified size.
+func (m *MetricsFS) Truncate(name string, size int64) error {
+	start := time.Now()
+
+	// Check if underlying filesystem implements Truncate
+	if fs, ok := m.fs.(interface {
+		Truncate(name string, size int64) error
+	}); ok {
+		err := fs.Truncate(name, size)
+		duration := time.Since(start)
+		m.collector.recordOperation("truncate", name, duration, size, err)
+		return err
+	}
+
+	duration := time.Since(start)
+	err := os.ErrInvalid
+	m.collector.recordOperation("truncate", name, duration, size, err)
 	return err
 }

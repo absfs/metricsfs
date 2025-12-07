@@ -1,5 +1,10 @@
 # metricsfs
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/absfs/metricsfs.svg)](https://pkg.go.dev/github.com/absfs/metricsfs)
+[![Go Report Card](https://goreportcard.com/badge/github.com/absfs/metricsfs)](https://goreportcard.com/report/github.com/absfs/metricsfs)
+[![CI](https://github.com/absfs/metricsfs/actions/workflows/ci.yml/badge.svg)](https://github.com/absfs/metricsfs/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Filesystem operation metrics for Prometheus and OpenTelemetry
 
 ## Overview

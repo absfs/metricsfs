@@ -15,9 +15,9 @@ type Collector struct {
 	config Config
 
 	// Operation counters
-	operationsTotal   *prometheus.CounterVec
-	fileOpensTotal    *prometheus.CounterVec
-	fileCreatesTotal  prometheus.Counter
+	operationsTotal    *prometheus.CounterVec
+	fileOpensTotal     *prometheus.CounterVec
+	fileCreatesTotal   prometheus.Counter
 	dirOperationsTotal *prometheus.CounterVec
 
 	// Latency histograms
@@ -39,15 +39,15 @@ type Collector struct {
 	// This approach is more efficient and aligns with Prometheus best practices.
 
 	// Error counters
-	errorsTotal          *prometheus.CounterVec
+	errorsTotal           *prometheus.CounterVec
 	permissionErrorsTotal *prometheus.CounterVec
 	notFoundErrorsTotal   *prometheus.CounterVec
 	timeoutErrorsTotal    *prometheus.CounterVec
 
 	// File descriptor tracking
-	openFiles    atomic.Int64
-	openFilesMax atomic.Int64
-	openFilesGauge prometheus.Gauge
+	openFiles         atomic.Int64
+	openFilesMax      atomic.Int64
+	openFilesGauge    prometheus.Gauge
 	openFilesMaxGauge prometheus.Gauge
 
 	// Path metrics (if enabled)

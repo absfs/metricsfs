@@ -2,6 +2,7 @@ package metricsfs
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"time"
 
@@ -167,4 +168,16 @@ func (f *MetricsFile) Readdirnames(n int) ([]string, error) {
 // Name returns the name of the file.
 func (f *MetricsFile) Name() string {
 	return f.file.Name()
+}
+
+// ReadDir reads the contents of the directory and returns a slice of up to n DirEntry values.
+func (f *MetricsFile) ReadDir(n int) ([]fs.DirEntry, error) {
+	start := time.Now()
+	entries, err := f.file.ReadDir(n)
+	duration := time.Since(start)
+
+	f.collector.recordOperation("readdir", f.path, duration, 0, err)
+	f.collector.recordDirOperation("readdir")
+
+	return entries, err
 }

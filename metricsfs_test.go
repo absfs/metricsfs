@@ -1,8 +1,8 @@
 package metricsfs
 
 import (
+	"io/fs"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,14 +19,6 @@ type mockFS struct {
 
 func newMockFS() *mockFS {
 	return &mockFS{cwd: "/"}
-}
-
-func (m *mockFS) Separator() uint8 {
-	return filepath.Separator
-}
-
-func (m *mockFS) ListSeparator() uint8 {
-	return filepath.ListSeparator
 }
 
 func (m *mockFS) Chdir(dir string) error {
@@ -98,6 +90,18 @@ func (m *mockFS) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	return nil
 }
 
+func (m *mockFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	return nil, nil
+}
+
+func (m *mockFS) ReadFile(name string) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (m *mockFS) Sub(dir string) (fs.FS, error) {
+	return absfs.FilerToFS(m, dir)
+}
+
 // mockFile is a minimal mock file for testing.
 type mockFile struct {
 	name   string
@@ -155,6 +159,10 @@ func (f *mockFile) Readdirnames(n int) ([]string, error) {
 
 func (f *mockFile) Name() string {
 	return f.name
+}
+
+func (f *mockFile) ReadDir(n int) ([]fs.DirEntry, error) {
+	return nil, nil
 }
 
 // mockFileInfo is a minimal mock file info for testing.
@@ -813,50 +821,6 @@ func TestPathMetrics(t *testing.T) {
 	}
 	if count == 0 {
 		t.Error("No metrics were collected with path metrics enabled")
-	}
-}
-
-func TestSeparator(t *testing.T) {
-	base := newMockFS()
-	fs := New(base)
-
-	sep := fs.Separator()
-	if sep != filepath.Separator {
-		t.Errorf("Expected separator %c, got %c", filepath.Separator, sep)
-	}
-}
-
-func TestSeparatorDelegation(t *testing.T) {
-	base := newMockFS()
-	fs := New(base)
-
-	// Since mockFS implements Separator(), it should delegate
-	sep := fs.Separator()
-	expected := base.Separator()
-	if sep != expected {
-		t.Errorf("Expected separator %c from delegation, got %c", expected, sep)
-	}
-}
-
-func TestListSeparator(t *testing.T) {
-	base := newMockFS()
-	fs := New(base)
-
-	sep := fs.ListSeparator()
-	if sep != filepath.ListSeparator {
-		t.Errorf("Expected list separator %c, got %c", filepath.ListSeparator, sep)
-	}
-}
-
-func TestListSeparatorDelegation(t *testing.T) {
-	base := newMockFS()
-	fs := New(base)
-
-	// Since mockFS implements ListSeparator(), it should delegate
-	sep := fs.ListSeparator()
-	expected := base.ListSeparator()
-	if sep != expected {
-		t.Errorf("Expected list separator %c from delegation, got %c", expected, sep)
 	}
 }
 

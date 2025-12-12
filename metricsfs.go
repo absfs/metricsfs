@@ -1,8 +1,8 @@
 package metricsfs
 
 import (
+	"io/fs"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/absfs/absfs"
@@ -262,28 +262,6 @@ func (m *MetricsFS) Symlink(oldname, newname string) error {
 	return err
 }
 
-// Separator returns the OS-specific path separator character.
-func (m *MetricsFS) Separator() uint8 {
-	// Check if underlying filesystem implements Separator
-	if fs, ok := m.fs.(interface {
-		Separator() uint8
-	}); ok {
-		return fs.Separator()
-	}
-	return filepath.Separator
-}
-
-// ListSeparator returns the OS-specific path list separator character.
-func (m *MetricsFS) ListSeparator() uint8 {
-	// Check if underlying filesystem implements ListSeparator
-	if fs, ok := m.fs.(interface {
-		ListSeparator() uint8
-	}); ok {
-		return fs.ListSeparator()
-	}
-	return filepath.ListSeparator
-}
-
 // Chdir changes the current working directory.
 func (m *MetricsFS) Chdir(dir string) error {
 	start := time.Now()
@@ -353,4 +331,42 @@ func (m *MetricsFS) Truncate(name string, size int64) error {
 	err := os.ErrInvalid
 	m.collector.recordOperation("truncate", name, duration, size, err)
 	return err
+}
+
+// ReadDir reads the named directory and returns a list of directory entries.
+func (m *MetricsFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	start := time.Now()
+	entries, err := m.fs.ReadDir(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation("readdir", name, duration, 0, err)
+	m.collector.recordDirOperation("readdir")
+
+	return entries, err
+}
+
+// ReadFile reads the named file and returns its contents.
+func (m *MetricsFS) ReadFile(name string) ([]byte, error) {
+	start := time.Now()
+	data, err := m.fs.ReadFile(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation("readfile", name, duration, int64(len(data)), err)
+
+	return data, err
+}
+
+// Sub returns a Filer corresponding to the subtree rooted at dir.
+func (m *MetricsFS) Sub(dir string) (fs.FS, error) {
+	start := time.Now()
+	sub, err := m.fs.Sub(dir)
+	duration := time.Since(start)
+
+	m.collector.recordOperation("sub", dir, duration, 0, err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sub, nil
 }

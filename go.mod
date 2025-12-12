@@ -2,16 +2,21 @@ module github.com/absfs/metricsfs
 
 go 1.23.0
 
-toolchain go1.24.7
-
 require (
-	github.com/absfs/absfs v0.0.0-20251109181304-77e2f9ac4448
-	github.com/absfs/fstesting v0.0.0-20251206231118-7a50ca2cce8a
+	github.com/absfs/absfs v0.0.0-20251208232938-aa0ca30de832
+	github.com/absfs/fstesting v0.0.0-20251207022242-d748a85c4a1e
 	github.com/absfs/osfs v0.1.0-fastwalk
 	github.com/prometheus/client_golang v1.23.2
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/metric v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
+)
+
+replace (
+	github.com/absfs/absfs => ../absfs
+	github.com/absfs/fstesting => ../fstesting
+	github.com/absfs/fstools => ../fstools
+	github.com/absfs/osfs => ../osfs
 )
 
 require (

@@ -2,6 +2,7 @@ package metricsfs
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"time"
 
@@ -640,6 +641,157 @@ func (m *OTelMetricsFS) SymlinkWithContext(ctx context.Context, oldname, newname
 	return err
 }
 
+// Chdir changes the current working directory.
+func (m *OTelMetricsFS) Chdir(dir string) error {
+	return m.ChdirWithContext(context.Background(), dir)
+}
+
+// ChdirWithContext changes the current working directory with context and tracing.
+func (m *OTelMetricsFS) ChdirWithContext(ctx context.Context, dir string) error {
+	ctx, span := m.startSpan(ctx, "Chdir", dir)
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Chdir(dir)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "chdir", dir, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// Getwd returns the current working directory.
+func (m *OTelMetricsFS) Getwd() (string, error) {
+	return m.GetwdWithContext(context.Background())
+}
+
+// GetwdWithContext returns the current working directory with context and tracing.
+func (m *OTelMetricsFS) GetwdWithContext(ctx context.Context) (string, error) {
+	ctx, span := m.startSpan(ctx, "Getwd", "")
+	defer span.End()
+
+	start := time.Now()
+	dir, err := m.fs.Getwd()
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "getwd", "", duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return dir, err
+}
+
+// TempDir returns the path to the temporary directory.
+func (m *OTelMetricsFS) TempDir() string {
+	return m.fs.TempDir()
+}
+
+// Truncate truncates the named file to the specified size.
+func (m *OTelMetricsFS) Truncate(name string, size int64) error {
+	return m.TruncateWithContext(context.Background(), name, size)
+}
+
+// TruncateWithContext truncates the named file with context and tracing.
+func (m *OTelMetricsFS) TruncateWithContext(ctx context.Context, name string, size int64) error {
+	ctx, span := m.startSpan(ctx, "Truncate", name)
+	span.SetAttributes(attribute.Int64("fs.size", size))
+	defer span.End()
+
+	start := time.Now()
+	err := m.fs.Truncate(name, size)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "truncate", name, duration, size, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return err
+}
+
+// ReadDir reads the named directory and returns a list of directory entries.
+func (m *OTelMetricsFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	return m.ReadDirWithContext(context.Background(), name)
+}
+
+// ReadDirWithContext reads the named directory with context and tracing.
+func (m *OTelMetricsFS) ReadDirWithContext(ctx context.Context, name string) ([]fs.DirEntry, error) {
+	ctx, span := m.startSpan(ctx, "ReadDir", name)
+	defer span.End()
+
+	start := time.Now()
+	entries, err := m.fs.ReadDir(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "readdir", name, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return entries, err
+}
+
+// ReadFile reads the named file and returns its contents.
+func (m *OTelMetricsFS) ReadFile(name string) ([]byte, error) {
+	return m.ReadFileWithContext(context.Background(), name)
+}
+
+// ReadFileWithContext reads the named file with context and tracing.
+func (m *OTelMetricsFS) ReadFileWithContext(ctx context.Context, name string) ([]byte, error) {
+	ctx, span := m.startSpan(ctx, "ReadFile", name)
+	defer span.End()
+
+	start := time.Now()
+	data, err := m.fs.ReadFile(name)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "readfile", name, duration, int64(len(data)), err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+	}
+
+	return data, err
+}
+
+// Sub returns a Filer corresponding to the subtree rooted at dir.
+func (m *OTelMetricsFS) Sub(dir string) (fs.FS, error) {
+	return m.SubWithContext(context.Background(), dir)
+}
+
+// SubWithContext returns a Filer corresponding to the subtree with context and tracing.
+func (m *OTelMetricsFS) SubWithContext(ctx context.Context, dir string) (fs.FS, error) {
+	ctx, span := m.startSpan(ctx, "Sub", dir)
+	defer span.End()
+
+	start := time.Now()
+	sub, err := m.fs.Sub(dir)
+	duration := time.Since(start)
+
+	m.collector.recordOperation(ctx, "sub", dir, duration, 0, err)
+
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return nil, err
+	}
+
+	return sub, nil
+}
+
 // otelMetricsFile wraps a file with OpenTelemetry instrumentation.
 type otelMetricsFile struct {
 	file      absfs.File
@@ -768,4 +920,8 @@ func (f *otelMetricsFile) Readdirnames(n int) ([]string, error) {
 
 func (f *otelMetricsFile) Name() string {
 	return f.file.Name()
+}
+
+func (f *otelMetricsFile) ReadDir(n int) ([]fs.DirEntry, error) {
+	return f.file.ReadDir(n)
 }

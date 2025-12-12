@@ -3,9 +3,9 @@ module github.com/absfs/metricsfs
 go 1.23.0
 
 require (
-	github.com/absfs/absfs v0.9.0
-	github.com/absfs/fstesting v0.9.0
-	github.com/absfs/osfs v0.9.0
+	github.com/absfs/absfs v1.0.0
+	github.com/absfs/fstesting v1.0.0
+	github.com/absfs/osfs v1.0.0
 	github.com/prometheus/client_golang v1.23.2
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/metric v1.38.0

@@ -12,7 +12,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0
 )
 
-
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
